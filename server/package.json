@@ -1,0 +1,22 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "npx nodemon"
+  },
+  "keywords": [],
+  "author": "Yani Li Idris",
+  "license": "ISC",
+  "description": "A wacky, silly party game for 2-10 players. Inspired by yo mama jokes and games like Cards Against Humanity.",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

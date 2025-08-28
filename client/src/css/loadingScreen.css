@@ -1,0 +1,129 @@
+/* Reset ONLY what you need */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-image: url('../assets/background-repeating-cover.jpg');
+  background-repeat: repeat;
+  font-family: Arial, sans-serif;
+}
+
+/* Gameplay container */
+.gameDisplay {
+  width: 90vw;
+  height: 90vh;
+  border: 3px solid #ff3c10;
+  border-radius: 15px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background-image: url('../assets/loading_screen.svg');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  box-sizing: border-box;
+}
+
+/* Inner loading box */
+.loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+
+  width: 90%;          /* flexible width */
+  max-width: 400px;    /* allows more room for inputs/buttons */
+  min-width: 280px;    /* prevent it from getting too small */
+
+  background: rgba(0, 0, 0, 0.6);
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 0 12px rgba(255, 60, 16, 0.6);
+}
+
+/* Username Input & Avatar Select */
+.usernameInput,
+.avatarSelect {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #ff3c10;
+  border-radius: 8px;
+  font-size: 1rem;
+  text-align: center;
+  background: #fff;
+  color: #333;
+}
+
+/* Start button */
+.startBttn {
+  width: 100%;
+  padding: 15px 20px;
+  font-size: 1.2rem;
+  background-color: #ffffff;
+  color: #ff3c10;
+  border: 3px solid #ff3c10;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: #ff3c10 0px 5px 15px;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+.startBttn:hover {
+  background-color: #ff3c10;
+  color: white;
+  border-color: white;
+  box-shadow: #ffffff 0px 0px 15px;
+}
+
+/* Room Code Container - Inline */
+.roomCodeInput {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;           /* full width of container */
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.roomCodeInput p {
+  margin: 0;
+  font-weight: bold;
+  color: white;
+}
+
+.roomCodeInput input {
+  flex: 1;               /* expand input to fill available space */
+  padding: 0.75rem;
+  border: 2px solid #ff3c10;
+  border-radius: 8px;
+  font-size: 1rem;
+  text-align: center;
+  background: #fff;
+  color: #333;
+}
+
+.roomCodeInput button {
+  flex-shrink: 0;        /* prevent button from shrinking */
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  background-color: #ffffff;
+  color: #ff3c10;
+  border: 2px solid #ff3c10;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.25s ease;
+}
+
+.roomCodeInput button:hover {
+  background-color: #ff3c10;
+  color: white;
+  border-color: white;
+}
