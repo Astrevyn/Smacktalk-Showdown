@@ -12,7 +12,7 @@ const io = new Server(server, {
   cors: { origin: "*", methods: ["GET", "POST"] },
 });
 
-let rooms = {}; // { roomCode: { users, hostId, gameState, ... } }
+let rooms = {}; // { roomCode: { users, hostId, chat, gameState, ... } }
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
@@ -32,14 +32,14 @@ io.on("connection", (socket) => {
     }
     const room = rooms[roomCode];
 
-    // Persistent user tracking
-    let existingUser = room.users.find(u => u.userId === userData.userId);
+    // Persistent user tracking by userId
+    let existingUser = room.users.find((u) => u.userId === userData.userId);
     if (existingUser) {
       existingUser.id = socket.id; // update socket id on reconnect
     } else {
       const newUser = {
         ...userData,
-        id: socket.id,
+        id: socket.id, // socket session id
         isReady: false,
         coins: userData.coins || 0,
         wins: userData.wins || 0,
@@ -48,7 +48,10 @@ io.on("connection", (socket) => {
     }
 
     socket.join(roomCode);
-    socket.emit("joined", { id: userData.userId, hostId: room.hostId });
+
+    // ✅ Fix: send both socket.id and persistent userId
+    socket.emit("joined", { id: socket.id, userId: userData.userId, hostId: room.hostId });
+
     io.to(roomCode).emit("lobbyUpdate", { users: room.users, hostId: room.hostId });
   });
 
@@ -56,19 +59,19 @@ io.on("connection", (socket) => {
   socket.on("playerReady", ({ roomCode, userId, isReady }) => {
     const room = rooms[roomCode];
     if (!room) return;
-    const player = room.users.find(u => u.userId === userId);
+    const player = room.users.find((u) => u.userId === userId);
     if (player) player.isReady = isReady;
 
     io.to(roomCode).emit("lobbyUpdate", { users: room.users, hostId: room.hostId });
 
     // Auto-start countdown if all ready
-    const allReady = room.users.length >= 2 && room.users.every(u => u.isReady);
+    const allReady = room.users.length >= 2 && room.users.every((u) => u.isReady);
     if (allReady && !room.gameTimer) {
       let seconds = 15;
       io.to(roomCode).emit("countdown", seconds);
 
       room.gameTimer = setInterval(() => {
-        if (room.users.length < 2 || !room.users.every(u => u.isReady)) {
+        if (room.users.length < 2 || !room.users.every((u) => u.isReady)) {
           clearInterval(room.gameTimer);
           room.gameTimer = null;
           io.to(roomCode).emit("countdown", null);
@@ -148,13 +151,17 @@ io.on("connection", (socket) => {
   const removeFromRoom = (socketId) => {
     for (const code in rooms) {
       const room = rooms[code];
-      room.users = room.users.filter(u => u.id !== socketId);
-      if (room.hostId === socketId && room.users.length) room.hostId = room.users[0].id;
+      room.users = room.users.filter((u) => u.id !== socketId);
+
+      if (room.hostId === socketId && room.users.length) {
+        room.hostId = room.users[0].id;
+      }
+
       if (!room.users.length) {
         delete rooms[code];
-        continue;
+      } else {
+        io.to(code).emit("lobbyUpdate", { users: room.users, hostId: room.hostId });
       }
-      io.to(code).emit("lobbyUpdate", { users: room.users, hostId: room.hostId });
     }
   };
   socket.on("leaveRoom", () => removeFromRoom(socket.id));
@@ -175,7 +182,12 @@ function startGame(roomCode) {
     voteOptions: ["guess-number"],
     votes: {},
     currentGame: null,
-    leaderboard: Object.fromEntries(room.users.map(u => [u.userId, { username: u.username, coins: u.coins, wins: u.wins }])),
+    leaderboard: Object.fromEntries(
+      room.users.map((u) => [
+        u.userId,
+        { username: u.username, coins: u.coins, wins: u.wins },
+      ])
+    ),
   };
 
   io.to(roomCode).emit("gameStart", { roomCode, round: 1 });
@@ -215,7 +227,9 @@ function finishVoting(roomCode) {
 
   const votes = Object.values(room.gameState.votes);
   const choice = votes.length
-    ? votes.sort((a, b) => votes.filter(v => v === b).length - votes.filter(v => v === a).length)[0]
+    ? votes.sort(
+      (a, b) => votes.filter((v) => v === b).length - votes.filter((v) => v === a).length
+    )[0]
     : room.gameState.voteOptions[0];
 
   room.gameState.currentGame = choice;
@@ -260,7 +274,7 @@ function endRound(roomCode, { winnerId, reason }) {
   if (room.gameState.roundTimer) clearInterval(room.gameState.roundTimer);
 
   if (winnerId) {
-    const u = room.users.find(x => x.userId === winnerId);
+    const u = room.users.find((x) => x.userId === winnerId);
     if (u) {
       u.coins += 3;
       u.wins += 1;
@@ -290,10 +304,10 @@ function endRound(roomCode, { winnerId, reason }) {
     } else {
       room.gameState.phase = "over";
       io.to(roomCode).emit("gameOver", { leaderboard: room.gameState.leaderboard });
-      room.users.forEach(u => (u.isReady = false));
+      room.users.forEach((u) => (u.isReady = false));
       io.to(roomCode).emit("lobbyUpdate", { users: room.users, hostId: room.hostId });
     }
   }, 3500);
 }
 
-server.listen(3000, () => console.log("Server running on port 3000"));
+server.listen(3000, "0.0.0.0", () => console.log("Server running on port 3000"));

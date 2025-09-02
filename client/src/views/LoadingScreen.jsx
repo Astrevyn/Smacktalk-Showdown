@@ -1,11 +1,11 @@
-/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../socket";
+import { v4 as uuidv4 } from "uuid";
 import "../css/loadingScreen.css";
 
 function generateRoomCode() {
-  return Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit code
+  return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
 export default function LoadingScreen() {
@@ -16,29 +16,21 @@ export default function LoadingScreen() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleNameError = (msg) => setError(msg);
-    const handleAvatarError = (msg) => setError(msg);
-
-    const handleJoined = ({ id }) => {
-      const user = {
+    const handleJoined = ({ userId }) => {
+      const storedUser = {
         username: name,
         avatar,
         coins: 0,
         gameWins: 0,
-        id,
+        userId, // ✅ persistent identifier
       };
-      localStorage.setItem("userData", JSON.stringify(user));
+      localStorage.setItem("userData", JSON.stringify(storedUser));
       setError(null);
       navigate(`/lobby/${roomCode}`);
     };
 
-    socket.on("usernameError", handleNameError);
-    socket.on("avatarError", handleAvatarError);
     socket.on("joined", handleJoined);
-
     return () => {
-      socket.off("usernameError", handleNameError);
-      socket.off("avatarError", handleAvatarError);
       socket.off("joined", handleJoined);
     };
   }, [name, avatar, roomCode, navigate]);
@@ -50,29 +42,23 @@ export default function LoadingScreen() {
       return;
     }
 
+    // ✅ Use existing userId if available, else generate one
+    let stored = JSON.parse(localStorage.getItem("userData"));
+    let userId = stored?.userId || uuidv4();
+
     const user = {
       username: name,
       avatar,
       coins: 0,
       gameWins: 0,
+      userId,
     };
 
     if (!socket.connected) socket.connect();
     socket.emit("joinRoom", roomCode, user);
   };
 
-  const avatars = [
-    "😎",
-    "🤡",
-    "🤖",
-    "🕹️",
-    "🦄",
-    "🪼",
-    "💃🏽",
-    "🥷🏽",
-    "🧝🏽",
-    "🧑🏽‍💻",
-  ];
+  const avatars = ["😎", "🤡", "🤖", "🕹️", "🦄", "🪼", "💃🏽", "🥷🏽", "🧝🏽", "🧑🏽‍💻"];
 
   return (
     <div className="gameDisplay">
@@ -101,11 +87,7 @@ export default function LoadingScreen() {
 
         <div className="roomCodeInput">
           <p>Room Code</p>
-          <input
-            type="text"
-            value={roomCode}
-            onChange={(e) => setRoomCode(e.target.value)}
-          />
+          <input type="text" value={roomCode} onChange={(e) => setRoomCode(e.target.value)} />
           <button
             className="randomizeBttn"
             onClick={() => setRoomCode(generateRoomCode())}

@@ -9,17 +9,12 @@ function Lobby() {
 
   const [players, setPlayers] = useState([]);
   const [isReady, setIsReady] = useState(false);
-  const [myId, setMyId] = useState(null);
+  const [myUserId, setMyUserId] = useState(null);
   const [hostId, setHostId] = useState(null);
   const [countdown, setCountdown] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const chatEndRef = useRef(null);
-
-  // --- Settings modal ---
-  const [showSettings, setShowSettings] = useState(false);
-  const [roundTime, setRoundTime] = useState(10); // minutes
-  const [maxRounds, setMaxRounds] = useState(3);
 
   useEffect(() => {
     let storedUser = JSON.parse(localStorage.getItem("userData"));
@@ -31,10 +26,10 @@ function Lobby() {
     if (!socket.connected) socket.connect();
     socket.emit("joinRoom", roomCode, storedUser);
 
-    const handleJoined = ({ id, hostId: newHostId }) => {
-      storedUser = { ...storedUser, id };
+    const handleJoined = ({ id, userId, hostId: newHostId }) => {
+      storedUser = { ...storedUser, id, userId };
       localStorage.setItem("userData", JSON.stringify(storedUser));
-      setMyId(id);
+      setMyUserId(userId); // persistent id
       if (newHostId) setHostId(newHostId);
     };
 
@@ -72,10 +67,10 @@ function Lobby() {
   }, [navigate, roomCode]);
 
   const handleReady = () => {
-    if (!myId) return;
+    if (!myUserId) return;
     const next = !isReady;
     setIsReady(next);
-    socket.emit("playerReady", { roomCode, id: myId, isReady: next });
+    socket.emit("playerReady", { roomCode, userId: myUserId, isReady: next });
   };
 
   const handleLeave = () => {
@@ -85,8 +80,8 @@ function Lobby() {
   };
 
   const sendMessage = () => {
-    if (!chatInput.trim() || !myId) return;
-    const user = players.find((p) => p.id === myId);
+    if (!chatInput.trim() || !myUserId) return;
+    const user = players.find((p) => p.userId === myUserId);
     socket.emit("sendMessage", { roomCode, username: user.username, message: chatInput });
     setChatInput("");
   };
@@ -94,11 +89,6 @@ function Lobby() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
-
-  const handleSaveSettings = () => {
-    socket.emit("updateSettings", { roomCode, roundTime, maxRounds });
-    setShowSettings(false);
-  };
 
   const maxPlayers = 6;
 
@@ -116,17 +106,19 @@ function Lobby() {
       {/* --- Players List --- */}
       <div className="playersList">
         {players.map((player) => (
-          <div key={player.id} className={`playerCard ${player.isReady ? "ready" : ""}`}>
+          <div key={player.userId} className={`playerCard ${player.isReady ? "ready" : ""}`}>
             <span className="avatar">{player.avatar}</span>
             <span
-              className={`username ${player.isReady ? "usernameReady" : ""} ${player.id === myId ? "myUsername" : ""
+              className={`username ${player.isReady ? "usernameReady" : ""} ${player.userId === myUserId ? "myUsername" : ""
                 }`}
             >
               {player.id === hostId && "👑"} {player.username}
             </span>
             <span className="coins">Coins: {player.coins}</span>
-            <span className="wins">Wins: {player.gameWins}</span>
-            <span className="readyStatus">{player.isReady ? "✅ Ready" : "❌ Not Ready"}</span>
+            <span className="wins">Wins: {player.wins}</span>
+            <span className="readyStatus">
+              {player.isReady ? "✅ Ready" : "❌ Not Ready"}
+            </span>
           </div>
         ))}
         {Array.from({ length: maxPlayers - players.length }).map((_, i) => (
@@ -144,11 +136,6 @@ function Lobby() {
         <button className="leaveBttn" onClick={handleLeave}>
           Leave Lobby
         </button>
-        {hostId === myId && (
-          <button className="readyBttn" onClick={() => setShowSettings(true)}>
-            Settings
-          </button>
-        )}
       </div>
 
       {/* --- Chat --- */}
@@ -161,47 +148,17 @@ function Lobby() {
           ))}
           <div ref={chatEndRef}></div>
         </div>
-        <input
-          type="text"
-          placeholder="Type a message..."
-          value={chatInput}
-          onChange={(e) => setChatInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-        />
-      </div>
-
-      {/* --- Settings Modal --- */}
-      {showSettings && (
-        <div className="settingsModalOverlay">
-          <div className="settingsModal">
-            <h2>Game Settings</h2>
-            <div className="settingsRow">
-              <label>Round Time (min):</label>
-              <input
-                type="number"
-                min={1}
-                max={30}
-                value={roundTime}
-                onChange={(e) => setRoundTime(Number(e.target.value))}
-              />
-            </div>
-            <div className="settingsRow">
-              <label>Max Rounds:</label>
-              <input
-                type="number"
-                min={1}
-                max={10}
-                value={maxRounds}
-                onChange={(e) => setMaxRounds(Number(e.target.value))}
-              />
-            </div>
-            <div className="modalButtons">
-              <button onClick={() => setShowSettings(false)}>Cancel</button>
-              <button onClick={handleSaveSettings}>Save</button>
-            </div>
-          </div>
+        <div className="msgBox">
+          <input
+            type="text"
+            placeholder="Type a message..."
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          />
+          <button onClick={sendMessage}>Send</button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

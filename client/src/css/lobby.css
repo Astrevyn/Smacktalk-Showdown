@@ -342,3 +342,25 @@
   background-color: #ff3c10;
   color: white;
 }
+
+.msgBox {
+  display: flex;
+  gap: 5px;
+}
+
+.msgBox button {
+  border: 2px solid green;
+  background: #222;
+  color: green;
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.msgBox button:hover {
+  background-color: green;
+  color: white;
+  border: 2px solid #fff;
+}
